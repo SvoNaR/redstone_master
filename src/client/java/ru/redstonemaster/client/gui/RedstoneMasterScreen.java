@@ -4,8 +4,10 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 
 import java.util.List;
@@ -22,9 +24,15 @@ public class RedstoneMasterScreen extends Screen {
 	private static final int CONTENT_TOP_GAP = 6;
 	/** Цвета в формате ARGB: без альфа-канала (0x00FFFFFF) текст не виден. */
 	private static final int TEXT_COLOR = 0xFFFFFFFF;
+	private static final int IMAGE_COLOR = 0xFFFFFFFF;
 	private static final int LINE_COLOR = 0xFF000000;
 	private static final int TITLE_COLOR = 0xFF800020;
 	private static final float TITLE_SCALE = 1.5f;
+	private static final Identifier MAIN_MENU_PHOTO = Identifier.fromNamespaceAndPath(
+			"redstone_master", "textures/gui/photo1_main_menu.png");
+	private static final int MAIN_MENU_PHOTO_SIZE = 1024;
+	private static final int CONTENT_INNER_PADDING = 6;
+	private static final int TEXT_TO_PHOTO_GAP = 8;
 
 	private RedstoneMasterTab currentTab = RedstoneMasterTab.MAIN_MENU;
 
@@ -177,15 +185,67 @@ public class RedstoneMasterScreen extends Screen {
 	}
 
 	private void renderContent(GuiGraphics graphics) {
-		int textX = this.contentX + 6;
-		int textY = this.contentY + 6;
-		int textWidth = this.contentWidth - 12;
+		if (this.currentTab == RedstoneMasterTab.MAIN_MENU) {
+			this.renderMainMenuContent(graphics);
+			return;
+		}
 
-		List<FormattedCharSequence> lines = this.font.split(this.currentTab.getContent(), textWidth);
+		this.renderTextContent(graphics, this.currentTab.getContent());
+	}
+
+	private void renderMainMenuContent(GuiGraphics graphics) {
+		int textX = this.contentX + CONTENT_INNER_PADDING;
+		int textY = this.contentY + CONTENT_INNER_PADDING;
+		int textWidth = this.contentWidth - CONTENT_INNER_PADDING * 2;
+
+		textY = this.renderTextContentAt(graphics, RedstoneMasterTab.MAIN_MENU.getContent(), textX, textY, textWidth);
+		textY += TEXT_TO_PHOTO_GAP;
+
+		int photoAreaBottom = this.contentY + this.contentHeight - CONTENT_INNER_PADDING;
+		int photoAreaHeight = photoAreaBottom - textY;
+		int photoAreaWidth = this.contentWidth - CONTENT_INNER_PADDING * 2;
+
+		if (photoAreaHeight <= 0 || photoAreaWidth <= 0) {
+			return;
+		}
+
+		int photoSize = Math.min(photoAreaWidth, photoAreaHeight);
+		int photoX = this.contentX + (this.contentWidth - photoSize) / 2;
+
+		graphics.blit(
+				RenderPipelines.GUI_TEXTURED,
+				MAIN_MENU_PHOTO,
+				photoX,
+				textY,
+				0.0f,
+				0.0f,
+				photoSize,
+				photoSize,
+				MAIN_MENU_PHOTO_SIZE,
+				MAIN_MENU_PHOTO_SIZE,
+				MAIN_MENU_PHOTO_SIZE,
+				MAIN_MENU_PHOTO_SIZE,
+				IMAGE_COLOR
+		);
+	}
+
+	private void renderTextContent(GuiGraphics graphics, Component text) {
+		this.renderTextContentAt(
+				graphics,
+				text,
+				this.contentX + CONTENT_INNER_PADDING,
+				this.contentY + CONTENT_INNER_PADDING,
+				this.contentWidth - CONTENT_INNER_PADDING * 2
+		);
+	}
+
+	private int renderTextContentAt(GuiGraphics graphics, Component text, int textX, int textY, int textWidth) {
+		List<FormattedCharSequence> lines = this.font.split(text, textWidth);
 		for (FormattedCharSequence line : lines) {
 			graphics.drawString(this.font, line, textX, textY, TEXT_COLOR, true);
 			textY += this.font.lineHeight;
 		}
+		return textY;
 	}
 
 	@Override
